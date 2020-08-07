@@ -11,10 +11,24 @@ import (
 	"strings"
 	"sync"
 	"net/http"
+	"strconv"
 )
 
 type RspStatus struct {
 	Status string `json:"status"`
+}
+
+type BenchmarkItem struct {
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers"`
+	Params  map[string]string `json:"params"`
+	Method  string            `json:"method"`
+	Times   int               `json:"times"`
+}
+
+type BenchmarkArgs struct {
+	Simple    *BenchmarkItem
+	WaitGroup *sync.WaitGroup
 }
 
 var (
@@ -30,10 +44,25 @@ var (
 
 	totalTimes int64
 	totalReqs  int64
+
+	benchmarkFile = "./simples.json"
+	connections   = 10
 )
 
-func benchmark(simple *BenchmarkItem, wg *sync.WaitGroup) {
-	defer wg.Done()
+func benchmark(args interface{}) interface{} {
+	var benchArgs = args.(*BenchmarkArgs)
+
+	if benchArgs.WaitGroup == nil {
+		return nil
+	}
+
+	defer benchArgs.WaitGroup.Done()
+
+	if benchArgs.Simple == nil {
+		return nil
+	}
+
+	simple := benchArgs.Simple
 
 	method := MethodGet
 	if len(simple.Method) > 0 {
@@ -70,7 +99,7 @@ func benchmark(simple *BenchmarkItem, wg *sync.WaitGroup) {
 	if err != nil || req.Status != http.StatusOK {
 		atomic.AddInt64(&failure, 1)
 		atomic.AddInt64(&failureErrors, 1)
-		return
+		return nil
 	}
 
 	rspStatus := &RspStatus{}
@@ -90,32 +119,50 @@ func benchmark(simple *BenchmarkItem, wg *sync.WaitGroup) {
 
 		atomic.AddInt64(&success, 1)
 	}
+
+	return nil
 }
 
 func displayBenchmarkResult() {
 	fmt.Printf("Benchmark Result:\n")
 	fmt.Printf("-----------------\n")
+	fmt.Printf("Connections(GoRoutines): %d\n", connections)
 	fmt.Printf("Success Total: %d reqs\n", success)
-	fmt.Printf("Failure Total: %d reqs, Service Errors: %d, Status Errors: %d\n", failure, failureErrors, failureStatus)
+	fmt.Printf("Failure Total: %d reqs\n", failure)
+	fmt.Printf("Service Errors: %d\n", failureErrors)
+	fmt.Printf("Status Errors: %d\n", failureStatus)
 	fmt.Printf("Success Rate: %d%%\n", success*100/totalReqs)
 	fmt.Printf("Fastest Request: %dms\n", minReqElapsed)
 	fmt.Printf("Slowest Request: %dms\n", maxReqElapsed)
 	fmt.Printf("Request Average Times: %dms\n", totalTimes/totalReqs)
 }
 
-type BenchmarkItem struct {
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Params  map[string]string `json:"params"`
-	Method  string            `json:"method"`
-	Times   int               `json:"times"`
+func parseArgs() {
+	argsLen := len(os.Args)
+
+	for i := 0; i < argsLen; i++ {
+		if os.Args[i][0] == '-' && len(os.Args[i]) > 1 {
+			switch os.Args[i][1] {
+			case 'f':
+				if argsLen > i+1 {
+					benchmarkFile = os.Args[i+1]
+					i++
+				}
+			case 'c':
+				if argsLen > i+1 {
+					value, err := strconv.Atoi(os.Args[i+1])
+					if err == nil && value > 0 {
+						connections = value
+						i++
+					}
+				}
+			}
+		}
+	}
 }
 
 func main() {
-	var benchmarkFile = "./simples.json"
-	if len(os.Args) > 1 {
-		benchmarkFile = os.Args[1]
-	}
+	parseArgs()
 
 	file, err := os.Open(benchmarkFile)
 	if err != nil {
@@ -137,6 +184,8 @@ func main() {
 		return
 	}
 
+	connPool := NewGoPool(connections)
+
 	wg := sync.WaitGroup{}
 
 	for _, simple := range simples {
@@ -147,7 +196,11 @@ func main() {
 
 		for i := 0; i < times; i++ {
 			wg.Add(1)
-			go benchmark(simple, &wg)
+
+			connPool.Do(benchmark, &BenchmarkArgs{
+				Simple:    simple,
+				WaitGroup: &wg,
+			})
 		}
 	}
 

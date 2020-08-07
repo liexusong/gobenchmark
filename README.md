@@ -9,10 +9,11 @@ $ go build .
 #### 使用方式:
 
 ```shell
-$ ./gobenchmark ./simple.json
+$ ./gobenchmark -f ./simple.json -c 100
 ```
 
-*   simple.json：要测试的实例样本
+*   `-f simple.json`：要测试的实例样本
+*   `-c 100`：测试的连接数
 
 #### 样本格式：
 
@@ -52,13 +53,16 @@ $ ./gobenchmark ./simple.json
 #### 测试结果：
 
 ```shell
-Benchmark Result:                                           
------------------                                           
-Success Total: 10 reqs                                      
-Failure Total: 0 reqs, Service Errors: 0, Status Errors: 0  
-Success Rate: 100%                                          
-Fastest Request: 49ms                                       
-Slowest Request: 58ms                                       
-Request Average Times: 54ms                                 
+Benchmark Result:
+-----------------
+Connections(GoRoutines): 100
+Success Total: 990 reqs
+Failure Total: 10 reqs
+Service Errors: 0
+Status Errors: 10
+Success Rate: 99%
+Fastest Request: 117ms
+Slowest Request: 374ms
+Request Average Times: 154ms                                 
 ```
 

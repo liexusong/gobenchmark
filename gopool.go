@@ -56,7 +56,7 @@ func routine(pool *GoPool) {
 
 // Create new coroutine pool object
 // @param size: how many worker coroutine would be create
-func New(size int) *GoPool {
+func NewGoPool(size int) *GoPool {
 	lock := &sync.Mutex{}
 
 	pool := &GoPool{
