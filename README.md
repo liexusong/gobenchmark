@@ -63,6 +63,6 @@ Status Errors: 10
 Success Rate: 99%
 Fastest Request: 117ms
 Slowest Request: 374ms
-Request Average Times: 154ms                                 
+Average Request Time: 154ms                                 
 ```
 
