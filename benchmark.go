@@ -131,7 +131,7 @@ func displayStatusStats() {
 	sort.Ints(status)
 
 	for _, state := range status {
-		fmt.Printf("Status %d: %d\n", state, statusStats[state])
+		fmt.Printf("Status %d: %d reqs\n", state, statusStats[state])
 	}
 }
 
