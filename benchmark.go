@@ -98,8 +98,9 @@ func displayBenchmarkResult() {
 	fmt.Printf("Success Total: %d reqs\n", success)
 	fmt.Printf("Failure Total: %d reqs, Service Errors: %d, Status Errors: %d\n", failure, failureErrors, failureStatus)
 	fmt.Printf("Success Rate: %d%%\n", success*100/totalReqs)
-	fmt.Printf("Max Elapsed Request: %d Millseconds, Min Elapsed Request: %d Millseconds\n", maxReqElapsed, minReqElapsed)
-	fmt.Printf("Request Average Times: %d Millseconds\n", totalTimes/totalReqs)
+	fmt.Printf("Fastest Request: %dms\n", minReqElapsed)
+	fmt.Printf("Slowest Request: %dms\n", maxReqElapsed)
+	fmt.Printf("Request Average Times: %dms\n", totalTimes/totalReqs)
 }
 
 type BenchmarkItem struct {

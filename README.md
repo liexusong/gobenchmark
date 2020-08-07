@@ -52,12 +52,13 @@ $ ./gobenchmark ./simple.json
 #### 测试结果：
 
 ```shell
-Benchmark Result:
------------------
-Success Total: 990 reqs
-Failure Total: 10 reqs, Service Errors: 0, Status Errors: 10
-Success Rate: 99%
-Max Elapsed Request: 1968 Millseconds, Min Elapsed Request: 422 Millseconds
-Request Average Times: 1232 Millseconds
+Benchmark Result:                                           
+-----------------                                           
+Success Total: 10 reqs                                      
+Failure Total: 0 reqs, Service Errors: 0, Status Errors: 0  
+Success Rate: 100%                                          
+Fastest Request: 49ms                                       
+Slowest Request: 58ms                                       
+Request Average Times: 54ms                                 
 ```
 
