@@ -12,11 +12,8 @@ import (
 	"sync"
 	"net/http"
 	"strconv"
+	"sort"
 )
-
-type RspStatus struct {
-	Status string `json:"status"`
-}
 
 type BenchmarkItem struct {
 	URL     string            `json:"url"`
@@ -35,15 +32,16 @@ var (
 	success int64
 	failure int64
 
-	failureErrors int64
-	failureStatus int64
-
 	elapsedMutex  sync.Mutex
 	maxReqElapsed int64
 	minReqElapsed int64
 
 	totalTimes int64
 	totalReqs  int64
+
+	totalRecvBytes int64
+
+	statusStats = make(map[int]int64)
 
 	benchmarkFile = "./simples.json"
 	connections   = 10
@@ -96,45 +94,60 @@ func benchmark(args interface{}) interface{} {
 	atomic.AddInt64(&totalTimes, elapsed)
 	atomic.AddInt64(&totalReqs, 1)
 
+	if _, exists := statusStats[req.Status]; !exists {
+		statusStats[req.Status] = 0
+	}
+
+	statusStats[req.Status]++
+
 	if err != nil || req.Status != http.StatusOK {
 		atomic.AddInt64(&failure, 1)
-		atomic.AddInt64(&failureErrors, 1)
 		return nil
 	}
 
-	rspStatus := &RspStatus{}
+	atomic.AddInt64(&totalRecvBytes, int64(len(rsp)))
 
-	if err := json.Unmarshal(rsp, rspStatus); err != nil || strings.ToLower(rspStatus.Status) != "ok" {
-		atomic.AddInt64(&failure, 1)
-		atomic.AddInt64(&failureStatus, 1)
-	} else {
-		elapsedMutex.Lock()
-		if elapsed > maxReqElapsed {
-			maxReqElapsed = elapsed
-		}
-		if minReqElapsed == 0 || elapsed < minReqElapsed {
-			minReqElapsed = elapsed
-		}
-		elapsedMutex.Unlock()
-
-		atomic.AddInt64(&success, 1)
+	elapsedMutex.Lock()
+	if elapsed > maxReqElapsed {
+		maxReqElapsed = elapsed
 	}
+	if minReqElapsed == 0 || elapsed < minReqElapsed {
+		minReqElapsed = elapsed
+	}
+	elapsedMutex.Unlock()
+
+	atomic.AddInt64(&success, 1)
 
 	return nil
 }
 
+func displayStatusStats() {
+	var status []int
+
+	for state, _ := range statusStats {
+		status = append(status, state)
+	}
+
+	sort.Ints(status)
+
+	for _, state := range status {
+		fmt.Printf("Status %d: %d\n", state, statusStats[state])
+	}
+}
+
 func displayBenchmarkResult() {
-	fmt.Printf("Benchmark Result:\n")
-	fmt.Printf("-----------------\n")
+	fmt.Printf("\nBenchmark Result:\n")
+	fmt.Printf("-------------------------------\n")
 	fmt.Printf("Connections(GoRoutines): %d\n", connections)
 	fmt.Printf("Success Total: %d reqs\n", success)
 	fmt.Printf("Failure Total: %d reqs\n", failure)
-	fmt.Printf("Service Errors: %d\n", failureErrors)
-	fmt.Printf("Status Errors: %d\n", failureStatus)
 	fmt.Printf("Success Rate: %d%%\n", success*100/totalReqs)
+	fmt.Printf("Receive Data %d KB\n", totalRecvBytes/1024)
 	fmt.Printf("Fastest Request: %dms\n", minReqElapsed)
 	fmt.Printf("Slowest Request: %dms\n", maxReqElapsed)
 	fmt.Printf("Average Request Time: %dms\n", totalTimes/totalReqs)
+	fmt.Printf("-------------------------------\n")
+	displayStatusStats()
 }
 
 func parseArgs() {

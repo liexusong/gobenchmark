@@ -54,15 +54,16 @@ $ ./gobenchmark -f ./simple.json -c 100
 
 ```shell
 Benchmark Result:
------------------
+-------------------------------
 Connections(GoRoutines): 100
-Success Total: 990 reqs
-Failure Total: 10 reqs
-Service Errors: 0
-Status Errors: 10
-Success Rate: 99%
-Fastest Request: 117ms
-Slowest Request: 374ms
-Average Request Time: 154ms                                 
+Success Total: 1000 reqs
+Failure Total: 0 reqs
+Success Rate: 100%
+Receive Data 2185 KB
+Fastest Request: 17ms
+Slowest Request: 1659ms
+Average Request Time: 113ms
+-------------------------------
+Status 200: 1000                                
 ```
 
