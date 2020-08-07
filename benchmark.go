@@ -134,7 +134,7 @@ func displayBenchmarkResult() {
 	fmt.Printf("Success Rate: %d%%\n", success*100/totalReqs)
 	fmt.Printf("Fastest Request: %dms\n", minReqElapsed)
 	fmt.Printf("Slowest Request: %dms\n", maxReqElapsed)
-	fmt.Printf("Request Average Times: %dms\n", totalTimes/totalReqs)
+	fmt.Printf("Average Request Time: %dms\n", totalTimes/totalReqs)
 }
 
 func parseArgs() {
