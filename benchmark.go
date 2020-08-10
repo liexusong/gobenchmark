@@ -115,7 +115,7 @@ func displayStatusStats() {
 
 func displayBenchmarkResult(times int) {
 	fmt.Printf("\n       Benchmark(%d):\n", times)
-	fmt.Printf("-------------------------------\n")
+	fmt.Printf("--------------------------------\n")
 	fmt.Printf("  Connections(GoRoutines): %d\n", connections)
 	fmt.Printf("  Success Total: %d reqs\n", stats.success)
 	fmt.Printf("  Failure Total: %d reqs\n", stats.failure)
@@ -124,7 +124,7 @@ func displayBenchmarkResult(times int) {
 	fmt.Printf("  Fastest Request: %dms\n", stats.minReqElapsed)
 	fmt.Printf("  Slowest Request: %dms\n", stats.maxReqElapsed)
 	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/stats.totalReqs)
-	fmt.Printf("-------------------------------\n")
+	fmt.Printf("--------------------------------\n")
 	displayStatusStats()
 }
 
