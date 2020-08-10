@@ -41,7 +41,7 @@ var (
 
 	totalRecvBytes int64
 
-	statusLock  = sync.Mutex{}
+	statusMutex sync.Mutex
 	statusStats = make(map[int]int64)
 
 	benchmarkFile = "./simples.json"
@@ -49,7 +49,7 @@ var (
 )
 
 func statsHttpStatus(status int) {
-	statusLock.Lock()
+	statusMutex.Lock()
 
 	if _, exists := statusStats[status]; !exists {
 		statusStats[status] = 0
@@ -57,7 +57,7 @@ func statsHttpStatus(status int) {
 
 	statusStats[status]++
 
-	statusLock.Unlock()
+	statusMutex.Unlock()
 }
 
 func updateElapsedStats(elapsed int64) {
