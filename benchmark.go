@@ -26,6 +26,7 @@ type BenchmarkItem struct {
 type BenchmarkArgs struct {
 	Simple    *BenchmarkItem
 	WaitGroup *sync.WaitGroup
+	Stats     *Stats
 }
 
 var (
@@ -34,8 +35,6 @@ var (
 
 	benchmarkTimes = 1
 	intervalSecond = 1
-
-	stats *Stats
 )
 
 func benchmark(args interface{}) interface{} {
@@ -82,40 +81,26 @@ func benchmark(args interface{}) interface{} {
 
 	elapsed := req.GetLastElapsed()
 
-	stats.AddTotalTime(elapsed)
-	stats.AddTotalReqs()
+	benchArgs.Stats.AddTotalTime(elapsed)
+	benchArgs.Stats.AddTotalReqs()
 
-	stats.AddStatusCount(req.Status)
+	benchArgs.Stats.AddStatusCount(req.Status)
 
 	if err != nil || req.Status != http.StatusOK {
-		stats.AddFailure()
+		benchArgs.Stats.AddFailure()
 		return nil
 	}
 
-	stats.AddTotalRecvBytes(int64(len(rsp)))
-	stats.UpdateReqElapsed(elapsed)
-	stats.AddSuccess()
+	benchArgs.Stats.AddTotalRecvBytes(int64(len(rsp)))
+	benchArgs.Stats.UpdateReqElapsed(elapsed)
+	benchArgs.Stats.AddSuccess()
 
 	return nil
 }
 
-func displayStatusStats() {
-	var status []int
-
-	for state, _ := range stats.statusStats {
-		status = append(status, state)
-	}
-
-	sort.Ints(status)
-
-	for _, state := range status {
-		fmt.Printf("Status %d: %d reqs\n", state, stats.statusStats[state])
-	}
-}
-
-func displayBenchmarkResult(times int) {
-	fmt.Printf("\n       Benchmark(%d):\n", times)
-	fmt.Printf("--------------------------------\n")
+func displayBenchmarkResult(times int, stats *Stats) {
+	fmt.Printf("\n     Benchmark Times(%d):\n", times)
+	fmt.Printf("-------------------------------\n")
 	fmt.Printf("  Connections(GoRoutines): %d\n", connections)
 	fmt.Printf("  Success Total: %d reqs\n", stats.success)
 	fmt.Printf("  Failure Total: %d reqs\n", stats.failure)
@@ -124,8 +109,19 @@ func displayBenchmarkResult(times int) {
 	fmt.Printf("  Fastest Request: %dms\n", stats.minReqElapsed)
 	fmt.Printf("  Slowest Request: %dms\n", stats.maxReqElapsed)
 	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/stats.totalReqs)
-	fmt.Printf("--------------------------------\n")
-	displayStatusStats()
+	fmt.Printf("-------------------------------\n")
+
+	var codes []int
+
+	for state, _ := range stats.statusStats {
+		codes = append(codes, state)
+	}
+
+	sort.Ints(codes)
+
+	for _, code := range codes {
+		fmt.Printf("Status %d: %d reqs\n", code, stats.statusStats[code])
+	}
 }
 
 func parseArgs() {
@@ -168,32 +164,34 @@ func parseArgs() {
 	}
 }
 
-func startBenchmark(simples []*BenchmarkItem, times int) {
-	stats = NewStats()
+func NewBenchmarkArgs(simple *BenchmarkItem, group *sync.WaitGroup, stats *Stats) *BenchmarkArgs {
+	return &BenchmarkArgs {
+		Simple:    simple,
+		WaitGroup: group,
+		Stats:     stats,
+	}
+}
 
+func startBenchmark(simples []*BenchmarkItem, times int) {
 	connPool := NewGoPool(connections)
 
-	wg := sync.WaitGroup{}
+	group := &sync.WaitGroup{}
+	stats := NewStats()
 
 	for _, simple := range simples {
-		times := simple.Times
-		if times <= 0 {
-			times = 1
+		if simple.Times <= 0 {
+			simple.Times = 1
 		}
 
-		for i := 0; i < times; i++ {
-			wg.Add(1)
-
-			connPool.Do(benchmark, &BenchmarkArgs{
-				Simple:    simple,
-				WaitGroup: &wg,
-			})
+		for i := 0; i < simple.Times; i++ {
+			group.Add(1)
+			connPool.Do(benchmark, NewBenchmarkArgs(simple, group, stats))
 		}
 	}
 
-	wg.Wait()
+	group.Wait()
 
-	displayBenchmarkResult(times)
+	displayBenchmarkResult(times, stats)
 }
 
 func main() {
