@@ -9,11 +9,13 @@ $ go build .
 #### 使用方式:
 
 ```shell
-$ ./gobenchmark -f ./simple.json -c 100
+$ ./gobenchmark -f ./simple.json -c 100 -t 100 -i 10
 ```
 
 *   `-f simple.json`：要测试的实例样本
 *   `-c 100`：测试的连接数
+*   `-t 100`：压测次数
+*   `-i 10`：每次压测间隔多少秒
 
 #### 样本格式：
 
@@ -53,17 +55,17 @@ $ ./gobenchmark -f ./simple.json -c 100
 #### 测试结果：
 
 ```shell
-Benchmark Result:
+     Benchmark Times(1):
 -------------------------------
-Connections(GoRoutines): 100
-Success Total: 1000 reqs
-Failure Total: 0 reqs
-Success Rate: 100%
-Receive Data 2185 KB
-Fastest Request: 17ms
-Slowest Request: 1659ms
-Average Request Time: 113ms
+  Connections(GoRoutines): 100
+  Success Total: 1000 reqs
+  Failure Total: 0 reqs
+  Success Rate: 100%
+  Receive Data 2185 KB
+  Fastest Request: 19ms
+  Slowest Request: 135ms
+  Average Request Time: 77ms
 -------------------------------
-Status 200: 1000                                
+Status 200: 1000 reqs                           
 ```
 
