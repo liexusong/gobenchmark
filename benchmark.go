@@ -1,8 +1,4 @@
 // A simple benchmark tool for testing web performance
-// ---------------------------------------------------
-// Copyright 2020 Jayden Lee. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
 
 package main
 
@@ -45,11 +41,38 @@ var (
 
 	totalRecvBytes int64
 
+	statusLock  = sync.Mutex{}
 	statusStats = make(map[int]int64)
 
 	benchmarkFile = "./simples.json"
 	connections   = 10
 )
+
+func statsHttpStatus(status int) {
+	statusLock.Lock()
+
+	if _, exists := statusStats[status]; !exists {
+		statusStats[status] = 0
+	}
+
+	statusStats[status]++
+
+	statusLock.Unlock()
+}
+
+func updateElapsedStats(elapsed int64) {
+	elapsedMutex.Lock()
+
+	if elapsed > maxReqElapsed {
+		maxReqElapsed = elapsed
+	}
+
+	if minReqElapsed == 0 || elapsed < minReqElapsed {
+		minReqElapsed = elapsed
+	}
+
+	elapsedMutex.Unlock()
+}
 
 func benchmark(args interface{}) interface{} {
 	var benchArgs = args.(*BenchmarkArgs)
@@ -98,11 +121,7 @@ func benchmark(args interface{}) interface{} {
 	atomic.AddInt64(&totalTimes, elapsed)
 	atomic.AddInt64(&totalReqs, 1)
 
-	if _, exists := statusStats[req.Status]; !exists {
-		statusStats[req.Status] = 0
-	}
-
-	statusStats[req.Status]++
+	statsHttpStatus(req.Status)
 
 	if err != nil || req.Status != http.StatusOK {
 		atomic.AddInt64(&failure, 1)
@@ -111,14 +130,7 @@ func benchmark(args interface{}) interface{} {
 
 	atomic.AddInt64(&totalRecvBytes, int64(len(rsp)))
 
-	elapsedMutex.Lock()
-	if elapsed > maxReqElapsed {
-		maxReqElapsed = elapsed
-	}
-	if minReqElapsed == 0 || elapsed < minReqElapsed {
-		minReqElapsed = elapsed
-	}
-	elapsedMutex.Unlock()
+	updateElapsedStats(elapsed)
 
 	atomic.AddInt64(&success, 1)
 
