@@ -1,4 +1,7 @@
 // A simple benchmark tool for testing web performance
+// Copyright 2020 Jayden Lee. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package main
 
@@ -37,20 +40,21 @@ var (
 	intervalSecond = 1
 )
 
-func benchmark(args interface{}) interface{} {
-	var benchArgs = args.(*BenchmarkArgs)
+func benchmark(data interface{}) interface{} {
+	var args = data.(*BenchmarkArgs)
 
-	if benchArgs.WaitGroup == nil {
+	if args.WaitGroup == nil {
 		return nil
 	}
 
-	defer benchArgs.WaitGroup.Done()
+	defer args.WaitGroup.Done()
 
-	if benchArgs.Simple == nil {
+	if args.Simple == nil || args.Stats == nil {
 		return nil
 	}
 
-	simple := benchArgs.Simple
+	simple := args.Simple
+	stats := args.Stats
 
 	method := MethodGet
 	if len(simple.Method) > 0 {
@@ -81,19 +85,19 @@ func benchmark(args interface{}) interface{} {
 
 	elapsed := req.GetLastElapsed()
 
-	benchArgs.Stats.AddTotalTime(elapsed)
-	benchArgs.Stats.AddTotalReqs()
+	stats.AddTotalTime(elapsed)
+	stats.AddTotalReqs()
 
-	benchArgs.Stats.AddStatusCount(req.Status)
+	stats.AddStatusCount(req.Status)
 
 	if err != nil || req.Status != http.StatusOK {
-		benchArgs.Stats.AddFailure()
+		stats.AddFailure()
 		return nil
 	}
 
-	benchArgs.Stats.AddTotalRecvBytes(int64(len(rsp)))
-	benchArgs.Stats.UpdateReqElapsed(elapsed)
-	benchArgs.Stats.AddSuccess()
+	stats.AddTotalRecvBytes(int64(len(rsp)))
+	stats.UpdateReqElapsed(elapsed)
+	stats.AddSuccess()
 
 	return nil
 }
@@ -115,7 +119,7 @@ func showStatusCount(stats *Stats) {
 func showBenchmarkResult(times int, stats *Stats) {
 	fmt.Printf("\n     Benchmark Times(%d):\n", times)
 	fmt.Printf("-------------------------------\n")
-	fmt.Printf("  Connections(GoRoutines): %d\n", connections)
+	fmt.Printf("  Connections(Routines): %d\n", connections)
 	fmt.Printf("  Success Total: %d reqs\n", stats.success)
 	fmt.Printf("  Failure Total: %d reqs\n", stats.failure)
 	fmt.Printf("  Success Rate: %d%%\n", stats.success*100/stats.totalReqs)

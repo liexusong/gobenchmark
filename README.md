@@ -54,7 +54,7 @@ $ ./gobenchmark -f ./simple.json -c 100 -t 100 -i 10
 
 #### 测试结果：
 
-```shell
+```
      Benchmark Times(1):
 -------------------------------
   Connections(GoRoutines): 100
