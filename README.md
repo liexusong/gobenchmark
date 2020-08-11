@@ -66,6 +66,21 @@ $ ./gobenchmark -f ./simple.json -c 100 -t 100 -i 10
   Slowest Request: 135ms
   Average Request Time: 77ms
 -------------------------------
-Status 200: 1000 reqs                           
+Status 200: 1000 reqs
+
+     Benchmark Times(2):
+-------------------------------
+  Connections(GoRoutines): 100
+  Success Total: 1000 reqs
+  Failure Total: 0 reqs
+  Success Rate: 100%
+  Receive Data 2185 KB
+  Fastest Request: 19ms
+  Slowest Request: 135ms
+  Average Request Time: 77ms
+-------------------------------
+Status 200: 1000 reqs
+
+...
 ```
 

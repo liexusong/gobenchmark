@@ -98,7 +98,21 @@ func benchmark(args interface{}) interface{} {
 	return nil
 }
 
-func displayBenchmarkResult(times int, stats *Stats) {
+func showStatusCount(stats *Stats) {
+	var codes []int
+
+	for state, _ := range stats.statusStats {
+		codes = append(codes, state)
+	}
+
+	sort.Ints(codes)
+
+	for _, code := range codes {
+		fmt.Printf("Status %d: %d reqs\n", code, stats.statusStats[code])
+	}
+}
+
+func showBenchmarkResult(times int, stats *Stats) {
 	fmt.Printf("\n     Benchmark Times(%d):\n", times)
 	fmt.Printf("-------------------------------\n")
 	fmt.Printf("  Connections(GoRoutines): %d\n", connections)
@@ -111,17 +125,7 @@ func displayBenchmarkResult(times int, stats *Stats) {
 	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/stats.totalReqs)
 	fmt.Printf("-------------------------------\n")
 
-	var codes []int
-
-	for state, _ := range stats.statusStats {
-		codes = append(codes, state)
-	}
-
-	sort.Ints(codes)
-
-	for _, code := range codes {
-		fmt.Printf("Status %d: %d reqs\n", code, stats.statusStats[code])
-	}
+	showStatusCount()
 }
 
 func parseArgs() {
@@ -191,7 +195,7 @@ func startBenchmark(simples []*BenchmarkItem, times int) {
 
 	group.Wait()
 
-	displayBenchmarkResult(times, stats)
+	showBenchmarkResult(times, stats)
 }
 
 func main() {
