@@ -129,7 +129,7 @@ func showBenchmarkResult(times int, stats *Stats) {
 	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/stats.totalReqs)
 	fmt.Printf("-------------------------------\n")
 
-	showStatusCount()
+	showStatusCount(stats)
 }
 
 func parseArgs() {
