@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 	"time"
+	"sync"
 )
 
 type Options struct {
@@ -38,6 +40,29 @@ const (
 	MethodGet  = 1
 	MethodPost = 2
 	MethodNone = 3
+)
+
+var (
+	clientPool = sync.Pool{
+		New: func() interface{} {
+			return &http.Client{}
+		},
+	}
+
+	skipSSLTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 )
 
 func CaseCompare(src, dst string) int {
@@ -237,16 +262,16 @@ func (req *Request) Do() ([]byte, error) {
 		return nil, errors.New("request URL cannot be empty")
 	}
 
-	client := &http.Client{
-		Timeout: req.opts.Timeout,
+	client := clientPool.Get().(*http.Client)
+
+	if req.opts.Timeout > 0 {
+		client.Timeout = req.opts.Timeout
 	}
 
 	if strings.ToLower(req.opts.URL[0:5]) == "https" {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
+		client.Transport = skipSSLTransport
+	} else {
+		client.Transport = http.DefaultTransport
 	}
 
 	var (
@@ -271,7 +296,11 @@ func (req *Request) Do() ([]byte, error) {
 		return nil, err
 	}
 
-	defer func() { _ = rsp.Body.Close() }()
+	defer func() {
+		_ = rsp.Body.Close()
+
+		clientPool.Put(client)
+	}()
 
 	return ioutil.ReadAll(rsp.Body)
 }
