@@ -1,4 +1,4 @@
-// Copyright 2020 Jayden Lee. All rights reserved.
+// Copyright 2020 Jayden Lie. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 )
 
-type JobFunc func(interface{}) interface{}
+type JobFunc func(args ...interface{}) interface{}
 
 type Job struct {
 	id   int64
 	fun  JobFunc
-	arg  interface{}
+	args []interface{}
 	pipe chan interface{}
 }
 
@@ -23,15 +23,15 @@ type GoPool struct {
 	LastID   int64
 	PoolSize int
 	Cond     *sync.Cond
-	Lock     *sync.Mutex
 	Queue    *list.List
+	JobPool  *sync.Pool
 }
 
 // Coroutine pool worker process function
 // @param pool: coroutine pool object
 func routine(pool *GoPool) {
 	for {
-		pool.Lock.Lock()
+		pool.Cond.L.Lock()
 
 		// First: Get job from queue front
 
@@ -48,9 +48,11 @@ func routine(pool *GoPool) {
 
 		pool.Queue.Remove(elem)
 
-		pool.Lock.Unlock()
+		pool.Cond.L.Unlock()
 
-		job.pipe <- job.fun(job.arg) // Third: Call job process function and return value
+		job.pipe <- job.fun(job.args...) // Third: Call job process function and return value
+
+		pool.JobPool.Put(job)
 	}
 }
 
@@ -63,17 +65,21 @@ func NewGoPool(size int) *GoPool {
 		LastID:   0,
 		PoolSize: size,
 		Cond:     sync.NewCond(lock),
-		Lock:     lock,
 		Queue:    list.New(),
+		JobPool: &sync.Pool{
+			New: func() interface{} {
+				return &Job{}
+			},
+		},
 	}
 
-	pool.Lock.Lock() // Stop all worker coroutine
+	pool.Cond.L.Lock() // First: stop all worker coroutine
 
 	for i := 0; i < size; i++ {
 		go routine(pool)
 	}
 
-	pool.Lock.Unlock() // Start all worker coroutine
+	pool.Cond.L.Unlock() // Second: start all worker coroutine
 
 	return pool
 }
@@ -82,18 +88,22 @@ func NewGoPool(size int) *GoPool {
 // @param handler: job process function handler
 // @param param: job process function parameter
 // @return: chan interface{}
-func (pool *GoPool) Do(fun JobFunc, arg interface{}) <-chan interface{} {
-	job := &Job{
-		id:   atomic.AddInt64(&pool.LastID, 1),
-		fun:  fun,
-		arg:  arg,
-		pipe: make(chan interface{}, 1),
-	}
+func (pool *GoPool) Do(fun JobFunc, args ...interface{}) <-chan interface{} {
+	job := pool.JobPool.Get().(*Job)
 
-	pool.Lock.Lock()
-	pool.Queue.PushBack(job) // Push job to queue
-	pool.Cond.Signal()       // Signal worker routine
-	pool.Lock.Unlock()
+	job.Init(atomic.AddInt64(&pool.LastID, 1), fun, args)
+
+	pool.Cond.L.Lock()
+	pool.Queue.PushBack(job) // First: push job to queue
+	pool.Cond.Signal()       // Second: signal worker routine
+	pool.Cond.L.Unlock()
 
 	return job.pipe
+}
+
+func (j *Job) Init(id int64, fun JobFunc, args []interface{}) {
+	j.id = id
+	j.fun = fun
+	j.args = args
+	j.pipe = make(chan interface{}, 1)
 }

@@ -40,8 +40,12 @@ var (
 	intervalSecond = 1
 )
 
-func benchmark(data interface{}) interface{} {
-	var args = data.(*BenchmarkArgs)
+func benchmark(params ...interface{}) interface{} {
+	if len(params) <= 0 {
+		return nil
+	}
+
+	var args = params[0].(*BenchmarkArgs)
 
 	if args.WaitGroup == nil {
 		return nil
