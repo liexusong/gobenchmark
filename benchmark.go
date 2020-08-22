@@ -6,24 +6,22 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"net/http"
+	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
-	"net/http"
-	"strconv"
-	"sort"
 	"time"
 )
 
 type BenchmarkItem struct {
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Params  map[string]string `json:"params"`
-	Method  string            `json:"method"`
-	Times   int               `json:"times"`
+	URL     string
+	Headers map[string]string
+	Params  map[string]string
+	Method  string
 }
 
 type BenchmarkArgs struct {
@@ -32,12 +30,19 @@ type BenchmarkArgs struct {
 	Stats     *Stats
 }
 
-var (
-	benchmarkFile = "./simples.json"
-	connections   = 10
+const (
+	version = "1.0.0"
+)
 
+var (
+	scriptFile     string
+	benchmarkLink  string
+	connections    = 10
+	benchmarkCount = 1
 	benchmarkTimes = 1
 	intervalSecond = 1
+
+	connPool *GoPool
 )
 
 func benchmark(params ...interface{}) interface{} {
@@ -85,6 +90,10 @@ func benchmark(params ...interface{}) interface{} {
 
 	req := NewRequest(opts...)
 
+	if !ReqRunScript(req) {
+		return errors.New("call script req() function return false")
+	}
+
 	rsp, err := req.Do()
 
 	elapsed := req.GetLastElapsed()
@@ -101,7 +110,12 @@ func benchmark(params ...interface{}) interface{} {
 
 	stats.AddTotalRecvBytes(int64(len(rsp)))
 	stats.UpdateReqElapsed(elapsed)
-	stats.AddSuccess()
+
+	if CheckRunScript(rsp) {
+		stats.AddSuccess()
+	} else {
+		stats.AddFailure()
+	}
 
 	return nil
 }
@@ -142,9 +156,14 @@ func parseArgs() {
 	for i := 0; i < argsLen; i++ {
 		if os.Args[i][0] == '-' && len(os.Args[i]) > 1 {
 			switch os.Args[i][1] {
-			case 'f':
+			case 'l':
 				if argsLen > i+1 {
-					benchmarkFile = os.Args[i+1]
+					benchmarkLink = os.Args[i+1]
+					i++
+				}
+			case 's':
+				if argsLen > i+1 {
+					scriptFile = os.Args[i+1]
 					i++
 				}
 			case 'c':
@@ -152,6 +171,14 @@ func parseArgs() {
 					value, err := strconv.Atoi(os.Args[i+1])
 					if err == nil && value > 0 {
 						connections = value
+						i++
+					}
+				}
+			case 'n':
+				if argsLen > i+1 {
+					value, err := strconv.Atoi(os.Args[i+1])
+					if err == nil && value > 0 {
+						benchmarkCount = value
 						i++
 					}
 				}
@@ -171,13 +198,16 @@ func parseArgs() {
 						i++
 					}
 				}
+			case 'v':
+				fmt.Printf("gobenchmark version: %s\n", version)
+				os.Exit(0)
 			}
 		}
 	}
 }
 
 func NewBenchmarkArgs(simple *BenchmarkItem, group *sync.WaitGroup, stats *Stats) *BenchmarkArgs {
-	return &BenchmarkArgs {
+	return &BenchmarkArgs{
 		Simple:    simple,
 		WaitGroup: group,
 		Stats:     stats,
@@ -185,20 +215,12 @@ func NewBenchmarkArgs(simple *BenchmarkItem, group *sync.WaitGroup, stats *Stats
 }
 
 func startBenchmark(simples []*BenchmarkItem, times int) {
-	connPool := NewGoPool(connections)
-
 	group := &sync.WaitGroup{}
 	stats := NewStats()
 
 	for _, simple := range simples {
-		if simple.Times <= 0 {
-			simple.Times = 1
-		}
-
-		for i := 0; i < simple.Times; i++ {
-			group.Add(1)
-			connPool.Do(benchmark, NewBenchmarkArgs(simple, group, stats))
-		}
+		group.Add(1)
+		connPool.Do(benchmark, NewBenchmarkArgs(simple, group, stats))
 	}
 
 	group.Wait()
@@ -206,33 +228,50 @@ func startBenchmark(simples []*BenchmarkItem, times int) {
 	showBenchmarkResult(times, stats)
 }
 
+func usage() {
+	fmt.Println("Usage: gobenchmark <options>     \n",
+		"  Options:                               \n",
+		"    -l <S>  Testing target URL (must)    \n",
+		"    -c <N>  Connections to keep open     \n",
+		"    -d <T>  Duration of test             \n",
+		"                                         \n",
+		"    -s <S>  Load Lua script file         \n",
+		"    -H <H>  Add header to request        \n",
+		"    -v      Print version details          ")
+}
+
 func main() {
 	parseArgs()
 
-	file, err := os.Open(benchmarkFile)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if len(benchmarkLink) == 0 {
+		usage()
+		os.Exit(-1)
 	}
-	defer func() { _ = file.Close() }()
 
-	buf, err := ioutil.ReadAll(file)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if len(scriptFile) > 0 {
+		err := InitScript(scriptFile)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	var simples []*BenchmarkItem
 
-	if err := json.Unmarshal(buf, &simples); err != nil {
-		fmt.Println(err)
-		return
+	for i := 0; i < benchmarkCount; i++ {
+		simples = append(simples, &BenchmarkItem{
+			URL:     benchmarkLink,
+			Headers: nil,
+			Params:  nil,
+			Method:  "GET",
+		})
 	}
+
+	connPool = NewGoPool(connections)
 
 	for i := 0; i < benchmarkTimes; i++ {
 		startBenchmark(simples, i+1)
 		if i < benchmarkTimes-1 {
-			time.Sleep(time.Duration(intervalSecond)*time.Second)
+			time.Sleep(time.Duration(intervalSecond) * time.Second)
 		}
 	}
 }

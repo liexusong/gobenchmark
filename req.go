@@ -14,8 +14,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
 type Options struct {
@@ -29,7 +29,7 @@ type Options struct {
 }
 
 type Request struct {
-	opts   *Options
+	opts    *Options
 	Elapsed int64
 	Status  int
 }
@@ -311,4 +311,33 @@ func (req *Request) GetLastElapsed() int64 {
 
 func (req *Request) GetLastStatus() int {
 	return req.Status
+}
+
+func (req *Request) SetURL(url string) {
+	req.opts.URL = url
+}
+
+func (req *Request) SetHeader(field, value string) {
+	req.opts.Headers[field] = value
+}
+
+func (req *Request) SetParam(field, value string) {
+	req.opts.Params[field] = value
+}
+
+func (req *Request) SetBody(body []byte) {
+	req.opts.Body = body
+}
+
+func (req *Request) SetMethod(method string) {
+	switch method {
+	case "POST":
+		req.opts.Method = MethodPost
+	case "GET":
+		req.opts.Method = MethodGet
+	}
+}
+
+func (req *Request) SetTimeout(ms int64) {
+	req.opts.Timeout = time.Duration(ms) * time.Millisecond
 }
