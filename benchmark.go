@@ -237,7 +237,7 @@ func usage() {
 		"                                         \n",
 		"    -s <S>  Load Lua script file         \n",
 		"    -H <H>  Add header to request        \n",
-		"    -v      Print version details          ")
+		"    -v      Print version details        ")
 }
 
 func main() {
