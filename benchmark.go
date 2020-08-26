@@ -206,6 +206,9 @@ func parseArgs() {
 						i++
 					}
 				}
+			case 'h':
+				usage()
+				os.Exit(0)
 			case 'v':
 				fmt.Printf("gobenchmark version: %s\n", version)
 				os.Exit(0)
@@ -237,14 +240,17 @@ func startBenchmark(simples []*BenchmarkItem, times int) {
 }
 
 func usage() {
-	fmt.Println("Usage: gobenchmark <options>     \n",
-		"  Options:                               \n",
-		"    -l <S>  Testing target URL           \n",
-		"    -c <N>  Connections to keep open     \n",
-		"                                         \n",
-		"    -s <S>  Load Lua script file         \n",
-		"    -H <H>  Add header to request        \n",
-		"    -v      Print version details        ")
+	fmt.Println("Usage: gobenchmark <options>           \n",
+		"  Options:                                     \n",
+		"    -l <S>  Testing target URL                 \n",
+		"    -c <N>  Connections to keep open           \n",
+		"    -t <N>  How many times for testing         \n",
+		"    -i <N>  Interval for each testing(seconds) \n",
+		"                                               \n",
+		"    -s <S>  Load Lua script file               \n",
+		"    -H <H>  Add header to request              \n",
+		"    -h      Show usage for gobenchmark         \n",
+		"    -v      Print version details              ")
 }
 
 func main() {

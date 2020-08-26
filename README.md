@@ -9,48 +9,38 @@ $ go build .
 #### 使用方式:
 
 ```shell
-$ ./gobenchmark -f ./simple.json -c 100 -t 100 -i 10
+Usage: gobenchmark <options>
+   Options:
+     -l <S>  Testing target URL
+     -c <N>  Connections to keep open
+     -t <N>  How many times for testing
+     -i <N>  Interval for each testing(seconds)
+
+     -s <S>  Load Lua script file
+     -H <H>  Add header to request
+     -h      Show usage for gobenchmark
+     -v      Print version details
 ```
 
-*   `-f simple.json`：要测试的实例样本
+```shell
+$ ./gobenchmark -l http://testing-url -c 100 -t 100 -i 10
+```
+
+*   `-l http://testing-url`：要测试的目标URL
+*   `-s ./script.lua`：测试脚本
 *   `-c 100`：测试的连接数
 *   `-t 100`：压测次数
 *   `-i 10`：每次压测间隔多少秒
 
-#### 样本格式：
+#### 测试脚本
 
-```json
-[
-    {
-        "url":"http://......",
-        "headers":{
-            "Content-Type":"text/json"
-        },
-        "params":{
-            "type":"1,2,3,4,5,6"
-        },
-        "method": "get",
-        "times": 1
-    },
-    {
-        "url":"http://......",
-        "headers":{
-            "Content-Type":"text/json"
-        },
-        "params":{
-            "type":"1,2,3,4,5,6"
-        },
-        "method": "post",
-        "times": 10
-    }
-]
-```
+测试脚本是一个lua脚本，这个脚本必须提供3个函数：`init()`、`request()` 和 `check()`。
 
-*   url：要压测的URL
-*   headers：设置的HTTP头信息
-*   params：传递的参数
-*   method：请求的方法，支持 `POST` 和 `GET` 两种
-*   times：请求次数
+* `init()`：测试时仅此调用一次，一般用于初始化一些测试的数据。
+* `request()`：每次请求测试URL都会调用这个函数，一般用于设置请求的参数。
+* `check()`：每次请求测试完毕都会调用一次，可以用于检测结果是否正确。
+
+这3个函数都需要返回一个bool值，表示调用是否成功。
 
 #### 测试结果：
 
