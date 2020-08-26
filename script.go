@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	reqMeta = "request"
+	reqMeta = "gobenchmark_req"
 )
 
 var (
@@ -134,7 +134,7 @@ func checkReq(L *lua.LState) *Request {
 	if v, ok := ud.Value.(*Request); ok {
 		return v
 	}
-	L.ArgError(1, "req() expected")
+	L.ArgError(1, "checkReq() expected")
 	return nil
 }
 
@@ -205,7 +205,7 @@ func ReqRunScript(req *Request) bool {
 	stateLock.Lock()
 
 	err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal("req"),
+		Fn:      L.GetGlobal("request"),
 		NRet:    1,
 		Protect: true,
 		Handler: nil,

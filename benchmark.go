@@ -91,7 +91,7 @@ func benchmark(params ...interface{}) interface{} {
 	req := NewRequest(opts...)
 
 	if !ReqRunScript(req) {
-		return errors.New("call script req() function return false")
+		return errors.New("call script request() function return false")
 	}
 
 	rsp, err := req.Do()
@@ -233,7 +233,6 @@ func usage() {
 		"  Options:                               \n",
 		"    -l <S>  Testing target URL (must)    \n",
 		"    -c <N>  Connections to keep open     \n",
-		"    -d <T>  Duration of test             \n",
 		"                                         \n",
 		"    -s <S>  Load Lua script file         \n",
 		"    -H <H>  Add header to request        \n",
