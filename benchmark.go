@@ -246,6 +246,7 @@ func usage() {
 		"  Options:                                     \n",
 		"    -l <S>  Testing target URL                 \n",
 		"    -c <N>  Connections to keep open           \n",
+		"    -n <N>  How many request for testing       \n",
 		"    -t <N>  How many times for testing         \n",
 		"    -i <N>  Interval for each testing(seconds) \n",
 		"                                               \n",
