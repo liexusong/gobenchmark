@@ -6,6 +6,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,6 +22,7 @@ type BenchmarkItem struct {
 	Headers map[string]string
 	Params  map[string]string
 	Method  string
+	Body    []byte
 }
 
 type BenchmarkArgs struct {
@@ -37,6 +39,10 @@ var (
 	scriptFile     string
 	targetLink     string
 	logPath        string
+	reqMethod      = "GET"
+	reqHeaders     = make(map[string]string)
+	reqArgs        = make(map[string]string)
+	reqBody        []byte
 	connections    = 10
 	benchmarkCount = 1
 	benchmarkTimes = 1
@@ -86,6 +92,10 @@ func benchmark(params ...interface{}) interface{} {
 
 	if len(simple.Params) > 0 {
 		opts = append(opts, ParamsOption(simple.Params))
+	}
+
+	if len(simple.Body) > 0 {
+		opts = append(opts, BodyOption(simple.Body))
 	}
 
 	req := NewRequest(opts...)
@@ -221,6 +231,37 @@ func parseArgs() {
 						i++
 					}
 				}
+			case 'm':
+				if argsLen > i+1 {
+					switch strings.ToUpper(os.Args[i+1]) {
+					case "GET":
+						reqMethod = "GET"
+					case "POST":
+						reqMethod = "POST"
+					}
+					i++
+				}
+			case 'A':
+				if argsLen > i+1 {
+					var args map[string]string
+					if err := json.Unmarshal([]byte(os.Args[i+1]), &args); err == nil {
+						reqArgs = args
+					}
+					i++
+				}
+			case 'H':
+				if argsLen > i+1 {
+					var headers map[string]string
+					if err := json.Unmarshal([]byte(os.Args[i+1]), &headers); err == nil {
+						reqHeaders = headers
+					}
+					i++
+				}
+			case 'B':
+				if argsLen > i+1 {
+					reqBody = []byte(os.Args[i+1])
+					i++
+				}
 			case 'h':
 				usage()
 				os.Exit(0)
@@ -263,9 +304,12 @@ func usage() {
 		"    -t <N>  How many times for testing         \n",
 		"    -i <N>  Interval for each testing(seconds) \n",
 		"    -L <S>  Error log path                     \n",
+		"    -m <S>  Request method (etc: GET, POST)    \n",
+		"    -H <S>  Add header to request (JSON format)\n",
+		"    -A <S>  Request arguments (JSON format)    \n",
+		"    -B <S>  Request body                       \n",
 		"                                               \n",
 		"    -s <S>  Load Lua script file               \n",
-		"    -H <H>  Add header to request              \n",
 		"    -h      Show usage for gobenchmark         \n",
 		"    -v      Print version details              ")
 }
@@ -290,9 +334,10 @@ func main() {
 	for i := 0; i < benchmarkCount; i++ {
 		simples = append(simples, &BenchmarkItem{
 			URL:     targetLink,
-			Headers: nil,
-			Params:  nil,
-			Method:  "GET",
+			Headers: reqHeaders,
+			Params:  reqArgs,
+			Method:  reqMethod,
+			Body:    reqBody,
 		})
 	}
 

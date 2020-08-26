@@ -22,7 +22,10 @@ const (
 	ErrorLevel
 )
 
-var log *Log
+var (
+	log       *Log
+	logEnable bool
+)
 
 func InitDefaultLog(path string, displayLevel int) {
 	var err error
@@ -32,6 +35,8 @@ func InitDefaultLog(path string, displayLevel int) {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+
+	logEnable = true
 }
 
 func NewLog(path string, displayLevel int) (*Log, error) {
@@ -88,13 +93,19 @@ func (l *Log) Errorf(format string, args ...interface{}) {
 }
 
 func Debugf(format string, args ...interface{}) {
-	log.logFormat(DebugLevel, format, args...)
+	if logEnable {
+		log.logFormat(DebugLevel, format, args...)
+	}
 }
 
 func Infof(format string, args ...interface{}) {
-	log.logFormat(InfoLevel, format, args...)
+	if logEnable {
+		log.logFormat(InfoLevel, format, args...)
+	}
 }
 
 func Errorf(format string, args ...interface{}) {
-	log.logFormat(ErrorLevel, format, args...)
+	if logEnable {
+		log.logFormat(ErrorLevel, format, args...)
+	}
 }
