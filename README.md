@@ -13,12 +13,16 @@ Usage: gobenchmark <options>
    Options:
      -l <S>  Testing target URL
      -c <N>  Connections to keep open
+     -n <N>  How many request for testing
      -t <N>  How many times for testing
      -i <N>  Interval for each testing(seconds)
      -L <S>  Error log path
+     -m <S>  Request method (etc: GET, POST)
+     -H <S>  Add header to request (JSON format)
+     -A <S>  Request arguments (JSON format)
+     -B <S>  Request body
 
      -s <S>  Load Lua script file
-     -H <H>  Add header to request
      -h      Show usage for gobenchmark
      -v      Print version details
 ```
