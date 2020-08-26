@@ -8,7 +8,7 @@ end
 
 -- 每个请求都会被调用一次(请求前: 可以设置请求的一些参数)
 function request(req)
-	req:set_timeout(1000)                  -- 设置超时时间(毫秒)
+	req:set_timeout(10000)                 -- 设置超时时间(毫秒)
 	req:set_header("host", "yourhost.com") -- 设置header
 	return true
 end

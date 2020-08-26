@@ -94,6 +94,10 @@ func benchmark(params ...interface{}) interface{} {
 		return errors.New("call script request() function return false")
 	}
 
+	if len(req.opts.URL) == 0 {
+		return errors.New("testing target URL has not set")
+	}
+
 	rsp, err := req.Do()
 
 	elapsed := req.GetLastElapsed()
@@ -105,7 +109,7 @@ func benchmark(params ...interface{}) interface{} {
 
 	if err != nil || req.Status != http.StatusOK {
 		stats.AddFailure()
-		return nil
+		return err
 	}
 
 	stats.AddTotalRecvBytes(int64(len(rsp)))
@@ -135,6 +139,10 @@ func showStatusCount(stats *Stats) {
 }
 
 func showBenchmarkResult(times int, stats *Stats) {
+	if stats.totalReqs == 0 {
+		stats.totalReqs = 1
+	}
+
 	fmt.Printf("\n     Benchmark Times(%d):\n", times)
 	fmt.Printf("-------------------------------\n")
 	fmt.Printf("  Connections(Routines): %d\n", connections)
@@ -231,7 +239,7 @@ func startBenchmark(simples []*BenchmarkItem, times int) {
 func usage() {
 	fmt.Println("Usage: gobenchmark <options>     \n",
 		"  Options:                               \n",
-		"    -l <S>  Testing target URL (must)    \n",
+		"    -l <S>  Testing target URL           \n",
 		"    -c <N>  Connections to keep open     \n",
 		"                                         \n",
 		"    -s <S>  Load Lua script file         \n",
@@ -241,11 +249,6 @@ func usage() {
 
 func main() {
 	parseArgs()
-
-	if len(benchmarkLink) == 0 {
-		usage()
-		os.Exit(-1)
-	}
 
 	if len(scriptFile) > 0 {
 		err := InitScript(scriptFile)
