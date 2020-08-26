@@ -85,16 +85,7 @@ func CURL(L *lua.LState) int {
 		paramsOpt  = make(map[string]string)
 	)
 
-	hasScheme := false
-
-	if len(target) > 7 {
-		scheme := strings.ToLower(target[0:7])
-		if scheme == "http://" || scheme == "https:/" {
-			hasScheme = true
-		}
-	}
-
-	if !hasScheme {
+	if !HasScheme(target) {
 		target = "http://" + target
 	}
 

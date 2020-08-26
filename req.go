@@ -96,6 +96,17 @@ func CaseCompare(src, dst string) int {
 	return len(src) - len(dst)
 }
 
+func HasScheme(url string) bool {
+	size := len(url)
+
+	if (size > 8 && strings.ToLower(url[0:8]) == "https://") ||
+		(size > 7 && strings.ToLower(url[0:7]) == "http://") {
+		return true
+	}
+
+	return false
+}
+
 func NewRequest(opts ...Option) *Request {
 	req := &Request{
 		opts: &Options{
@@ -318,16 +329,7 @@ func (req *Request) SetURL(url string) {
 		return
 	}
 
-	hasScheme := false
-
-	if len(url) > 7 {
-		scheme := strings.ToLower(url[0:7])
-		if scheme == "http://" || scheme == "https:/" {
-			hasScheme = true
-		}
-	}
-
-	if !hasScheme {
+	if !HasScheme(url) {
 		url = "http://" + url
 	}
 
