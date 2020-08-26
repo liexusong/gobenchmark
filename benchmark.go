@@ -1,5 +1,5 @@
 // A simple benchmark tool for testing web performance
-// Copyright 2020 Jayden Lee. All rights reserved.
+// Copyright 2020 Jayden Lie. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -139,8 +139,10 @@ func showStatusCount(stats *Stats) {
 }
 
 func showBenchmarkResult(times int, stats *Stats) {
-	if stats.totalReqs == 0 {
-		stats.totalReqs = 1
+	// Make sure dividend not zero
+	totalReqs := stats.totalReqs
+	if totalReqs == 0 {
+		totalReqs = 1
 	}
 
 	fmt.Printf("\n     Benchmark Times(%d):\n", times)
@@ -148,11 +150,11 @@ func showBenchmarkResult(times int, stats *Stats) {
 	fmt.Printf("  Connections(Routines): %d\n", connections)
 	fmt.Printf("  Success Total: %d reqs\n", stats.success)
 	fmt.Printf("  Failure Total: %d reqs\n", stats.failure)
-	fmt.Printf("  Success Rate: %d%%\n", stats.success*100/stats.totalReqs)
+	fmt.Printf("  Success Rate: %d%%\n", stats.success*100/totalReqs)
 	fmt.Printf("  Receive Data %d KB\n", stats.totalRecvBytes/1024)
 	fmt.Printf("  Fastest Request: %dms\n", stats.minReqElapsed)
 	fmt.Printf("  Slowest Request: %dms\n", stats.maxReqElapsed)
-	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/stats.totalReqs)
+	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/totalReqs)
 	fmt.Printf("-------------------------------\n")
 
 	showStatusCount(stats)
