@@ -30,7 +30,7 @@ type BenchmarkArgs struct {
 }
 
 const (
-	version = "1.0.0"
+	version = "1.0.1"
 )
 
 var (
@@ -100,7 +100,7 @@ func benchmark(params ...interface{}) interface{} {
 		return nil
 	}
 
-	rsp, err := req.Do()
+	body, err := req.Do()
 
 	elapsed := req.GetLastElapsed()
 
@@ -114,18 +114,19 @@ func benchmark(params ...interface{}) interface{} {
 	if err != nil || req.Status != http.StatusOK {
 		stats.AddFailure()
 		if err != nil {
-			Errorf("%v", err)
+			Errorf("%s", err.Error())
 		}
 		return nil
 	}
 
-	stats.AddTotalRecvBytes(int64(len(rsp)))
+	stats.AddTotalRecvBytes(int64(len(body)))
 	stats.UpdateReqElapsed(elapsed)
 
-	if CheckRunScript(rsp) {
+	if CheckRunScript(body) {
 		stats.AddSuccess()
 	} else {
 		stats.AddFailure()
+		Errorf("Check result false: %s, %s", req.opts.URL, string(body))
 	}
 
 	return nil
