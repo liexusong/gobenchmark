@@ -15,5 +15,7 @@ end
 
 -- 每个请求都会被调用一次(请求后: 检测返回数据是否正确)
 function check(rsp)
+    -- result = json.decode(rsp)
+    -- 检测返回数据是否正确
 	return true
 end

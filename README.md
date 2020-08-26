@@ -23,11 +23,11 @@ Usage: gobenchmark <options>
 ```
 
 ```shell
-$ ./gobenchmark -l http://testing-url -c 100 -t 100 -i 10
+$ ./gobenchmark -l http://testing-url -c 100 -t 100 -i 10 -s ./script/script.lua
 ```
 
 *   `-l http://testing-url`：要测试的目标URL
-*   `-s ./script.lua`：测试脚本
+*   `-s ./script/script.lua`：测试脚本
 *   `-c 100`：测试的连接数
 *   `-t 100`：压测次数
 *   `-i 10`：每次压测间隔多少秒
