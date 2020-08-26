@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	reqMeta = "gobenchmark_req"
+	reqMeta = "benchmark_req"
 )
 
 var (
@@ -37,7 +37,7 @@ func LoadModule(L *lua.LState) int {
 func InitScript(script string) error {
 	L = lua.NewState()
 
-	L.PreloadModule("gobenchmark", LoadModule)
+	L.PreloadModule("benchmark", LoadModule)
 
 	err := L.DoFile(script)
 	if err != nil {

@@ -1,4 +1,4 @@
-mark = require "gobenchmark"
+mark = require "benchmark"
 json = require "./script/json"
 
 -- 启动测试时会被调用一次(可以初始化一些请求参数)
