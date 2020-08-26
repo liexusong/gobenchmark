@@ -73,7 +73,7 @@ func InitScript(script string) error {
 // Fetch content from remote URL
 // Example: gobenchmark.curl(url, method, headers, params, timeout)
 func CURL(L *lua.LState) int {
-	target := L.CheckString(1)
+	target := strings.TrimSpace(L.CheckString(1))
 	method := L.OptString(2, "GET")
 	headers := L.OptTable(3, L.NewTable())
 	params := L.OptTable(4, L.NewTable())
@@ -84,6 +84,12 @@ func CURL(L *lua.LState) int {
 		headersOpt = make(map[string]string)
 		paramsOpt  = make(map[string]string)
 	)
+
+	if len(target) == 0 {
+		L.Push(lua.LString(""))
+		L.Push(lua.LBool(false))
+		return 2
+	}
 
 	if !HasScheme(target) {
 		target = "http://" + target

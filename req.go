@@ -325,6 +325,7 @@ func (req *Request) GetLastStatus() int {
 }
 
 func (req *Request) SetURL(url string) {
+	url = strings.TrimSpace(url)
 	if len(url) == 0 {
 		return
 	}
