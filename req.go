@@ -314,6 +314,23 @@ func (req *Request) GetLastStatus() int {
 }
 
 func (req *Request) SetURL(url string) {
+	if len(url) == 0 {
+		return
+	}
+
+	hasScheme := false
+
+	if len(url) > 7 {
+		scheme := strings.ToLower(url[0:7])
+		if scheme == "http://" || scheme == "https:/" {
+			hasScheme = true
+		}
+	}
+
+	if !hasScheme {
+		url = "http://" + url
+	}
+
 	req.opts.URL = url
 }
 

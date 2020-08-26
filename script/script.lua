@@ -3,8 +3,6 @@ json = require "./script/json"
 
 -- 启动测试时会被调用一次(可以初始化一些请求参数)
 function init()
-    rsp, res = mark.curl("www.baidu.com")
-    print(rsp)
     return true
 end
 
@@ -12,6 +10,7 @@ end
 function request(req)
     req:set_timeout(10000)                 -- 设置超时时间(毫秒)
     req:set_header("host", "yourhost.com") -- 设置header
+    req:set_url("www.baidu.com")
     return true
 end
 
