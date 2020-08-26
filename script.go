@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -68,18 +69,34 @@ func InitScript(script string) error {
 	return nil
 }
 
-// example: curl(method, url, headers, args)
+// Helper functions:
+// Fetch content from remote URL
+// Example: gobenchmark.curl(url, method, headers, params, timeout)
 func CURL(L *lua.LState) int {
-	method := L.ToString(1)
-	url := L.ToString(2)
-	headers := L.ToTable(3)
-	args := L.ToTable(4)
+	target := L.CheckString(1)
+	method := L.OptString(2, "GET")
+	headers := L.OptTable(3, L.NewTable())
+	params := L.OptTable(4, L.NewTable())
+	timeout := L.OptInt64(5, int64(10*time.Second))
 
 	var (
-		methodOpt  int
+		methodOpt  = MethodGet
 		headersOpt = make(map[string]string)
 		paramsOpt  = make(map[string]string)
 	)
+
+	hasScheme := false
+
+	if len(target) > 7 {
+		scheme := strings.ToLower(target[0:7])
+		if scheme == "http://" || scheme == "https:/" {
+			hasScheme = true
+		}
+	}
+
+	if !hasScheme {
+		target = "http://" + target
+	}
 
 	switch strings.ToUpper(method) {
 	case "GET":
@@ -92,15 +109,16 @@ func CURL(L *lua.LState) int {
 		headersOpt[field.String()] = value.String()
 	})
 
-	args.ForEach(func(field lua.LValue, value lua.LValue) {
+	params.ForEach(func(field lua.LValue, value lua.LValue) {
 		paramsOpt[field.String()] = value.String()
 	})
 
 	req := NewRequest(
 		MethodOption(methodOpt),
-		URLOption(url),
+		URLOption(target),
 		HeadersOption(headersOpt),
 		ParamsOption(paramsOpt),
+		TimeoutOption(time.Duration(timeout)),
 	)
 
 	rsp, err := req.Do()
