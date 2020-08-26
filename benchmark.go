@@ -35,7 +35,7 @@ const (
 
 var (
 	scriptFile     string
-	benchmarkLink  string
+	targetLink     string
 	logPath        string
 	connections    = 10
 	benchmarkCount = 1
@@ -176,7 +176,7 @@ func parseArgs() {
 			switch os.Args[i][1] {
 			case 'l':
 				if argsLen > i+1 {
-					benchmarkLink = os.Args[i+1]
+					targetLink = os.Args[i+1]
 					i++
 				}
 			case 'L':
@@ -289,7 +289,7 @@ func main() {
 
 	for i := 0; i < benchmarkCount; i++ {
 		simples = append(simples, &BenchmarkItem{
-			URL:     benchmarkLink,
+			URL:     targetLink,
 			Headers: nil,
 			Params:  nil,
 			Method:  "GET",
