@@ -6,7 +6,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -37,6 +36,7 @@ const (
 var (
 	scriptFile     string
 	benchmarkLink  string
+	logPath        string
 	connections    = 10
 	benchmarkCount = 1
 	benchmarkTimes = 1
@@ -91,11 +91,13 @@ func benchmark(params ...interface{}) interface{} {
 	req := NewRequest(opts...)
 
 	if !ReqRunScript(req) {
-		return errors.New("call script request() function return false")
+		Errorf("Call script request() function return false")
+		return nil
 	}
 
 	if len(req.opts.URL) == 0 {
-		return errors.New("testing target URL has not set")
+		Errorf("Testing target URL has not set")
+		return nil
 	}
 
 	rsp, err := req.Do()
@@ -105,11 +107,16 @@ func benchmark(params ...interface{}) interface{} {
 	stats.AddTotalTime(elapsed)
 	stats.AddTotalReqs()
 
-	stats.AddStatusCount(req.Status)
+	if req.Status != 0 {
+		stats.AddStatusCount(req.Status)
+	}
 
 	if err != nil || req.Status != http.StatusOK {
 		stats.AddFailure()
-		return err
+		if err != nil {
+			Errorf("%v", err)
+		}
+		return nil
 	}
 
 	stats.AddTotalRecvBytes(int64(len(rsp)))
@@ -169,6 +176,11 @@ func parseArgs() {
 			case 'l':
 				if argsLen > i+1 {
 					benchmarkLink = os.Args[i+1]
+					i++
+				}
+			case 'L':
+				if argsLen > i+1 {
+					logPath = os.Args[i+1]
 					i++
 				}
 			case 's':
@@ -249,6 +261,7 @@ func usage() {
 		"    -n <N>  How many request for testing       \n",
 		"    -t <N>  How many times for testing         \n",
 		"    -i <N>  Interval for each testing(seconds) \n",
+		"    -L <S>  Error log path                     \n",
 		"                                               \n",
 		"    -s <S>  Load Lua script file               \n",
 		"    -H <H>  Add header to request              \n",
@@ -265,6 +278,10 @@ func main() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
+	}
+
+	if len(logPath) > 0 {
+		InitDefaultLog(logPath, DebugLevel)
 	}
 
 	var simples []*BenchmarkItem

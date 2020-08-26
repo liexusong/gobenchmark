@@ -15,6 +15,7 @@ Usage: gobenchmark <options>
      -c <N>  Connections to keep open
      -t <N>  How many times for testing
      -i <N>  Interval for each testing(seconds)
+     -L <S>  Error log path
 
      -s <S>  Load Lua script file
      -H <H>  Add header to request
@@ -31,6 +32,7 @@ $ ./gobenchmark -l http://testing-url -c 100 -t 100 -i 10 -s ./script/script.lua
 *   `-c 100`：测试的连接数
 *   `-t 100`：压测次数
 *   `-i 10`：每次压测间隔多少秒
+*   `-L ./error.log`：如果请求出错，会在这里记录日志
 
 #### 测试脚本
 
