@@ -21,6 +21,7 @@ type Stats struct {
 	totalReqs  int64
 
 	totalRecvBytes int64
+	totalPreReqs   int64
 
 	statusMutex sync.Mutex
 	statusStats map[int]int64
@@ -42,6 +43,10 @@ func (s *Stats) AddFailure() {
 
 func (s *Stats) AddTotalTime(ts int64) {
 	atomic.AddInt64(&s.totalTimes, ts)
+}
+
+func (s *Stats) AddTotalPreReqs(reqs int64) {
+	atomic.AddInt64(&s.totalPreReqs, reqs)
 }
 
 func (s *Stats) AddTotalReqs() {

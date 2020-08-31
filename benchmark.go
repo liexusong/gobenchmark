@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 type BenchmarkItem struct {
@@ -32,7 +31,7 @@ type BenchmarkArgs struct {
 }
 
 const (
-	version = "1.0.1"
+	version = "1.0.0"
 )
 
 var (
@@ -44,11 +43,7 @@ var (
 	reqArgs        = make(map[string]string)
 	reqBody        []byte
 	connections    = 10
-	benchmarkCount = 1
 	benchmarkTimes = 1
-	intervalSecond = 1
-
-	connPool *GoPool
 )
 
 func benchmark(params ...interface{}) interface{} {
@@ -114,8 +109,9 @@ func benchmark(params ...interface{}) interface{} {
 
 	elapsed := req.GetLastElapsed()
 
-	stats.AddTotalTime(elapsed)
+	stats.AddTotalPreReqs(1000000000000 / elapsed)
 	stats.AddTotalReqs()
+	stats.AddTotalTime(elapsed)
 
 	if req.Status != 0 {
 		stats.AddStatusCount(req.Status)
@@ -156,24 +152,48 @@ func showStatusCount(stats *Stats) {
 	}
 }
 
-func showBenchmarkResult(times int, stats *Stats) {
+func showBenchmarkResult(stats *Stats) {
 	// Make sure dividend not zero
 	totalReqs := stats.totalReqs
 	if totalReqs == 0 {
 		totalReqs = 1
 	}
 
-	fmt.Printf("\n     Benchmark Times(%d):\n", times)
-	fmt.Printf("-------------------------------\n")
+	totalSeconds := stats.totalTimes / 1000
+	if totalSeconds == 0 {
+		totalSeconds = 1
+	}
+
+	var (
+		totalRecv float64
+		totalUnit string
+	)
+
+	if stats.totalRecvBytes > 1024*1024*1024 {
+		totalRecv = float64(stats.totalRecvBytes) / 1024 / 1024 / 1024
+		totalUnit = "GB"
+	} else if stats.totalRecvBytes > 1024*1024 {
+		totalRecv = float64(stats.totalRecvBytes) / 1024 / 1024
+		totalUnit = "MB"
+	} else if stats.totalRecvBytes > 1024 {
+		totalRecv = float64(stats.totalRecvBytes) / 1024
+		totalUnit = "KB"
+	} else {
+		totalRecv = float64(stats.totalRecvBytes)
+		totalUnit = "B"
+	}
+
 	fmt.Printf("  Connections(Routines): %d\n", connections)
 	fmt.Printf("  Success Total: %d reqs\n", stats.success)
 	fmt.Printf("  Failure Total: %d reqs\n", stats.failure)
 	fmt.Printf("  Success Rate: %d%%\n", stats.success*100/totalReqs)
-	fmt.Printf("  Receive Data %d KB\n", stats.totalRecvBytes/1024)
-	fmt.Printf("  Fastest Request: %dms\n", stats.minReqElapsed)
-	fmt.Printf("  Slowest Request: %dms\n", stats.maxReqElapsed)
-	fmt.Printf("  Average Request Time: %dms\n", stats.totalTimes/totalReqs)
-	fmt.Printf("-------------------------------\n")
+	fmt.Printf("  Receive Data %0.3f(%s)\n", totalRecv, totalUnit)
+	fmt.Printf("  Fastest Request: %d(MS)\n", stats.minReqElapsed)
+	fmt.Printf("  Slowest Request: %d(MS)\n", stats.maxReqElapsed)
+	fmt.Printf("  Average Request Time: %d(MS)\n", stats.totalTimes/totalReqs)
+	fmt.Printf("  Requests/sec: %d\n", stats.totalPreReqs/stats.totalReqs/1000000)
+	fmt.Printf("  Transfer/sec: %0.3f(%s)\n", totalRecv/float64(totalSeconds), totalUnit)
+	fmt.Printf("----------------------------\n")
 
 	showStatusCount(stats)
 }
@@ -184,9 +204,15 @@ func parseArgs() {
 	for i := 0; i < argsLen; i++ {
 		if os.Args[i][0] == '-' && len(os.Args[i]) > 1 {
 			switch os.Args[i][1] {
-			case 'l':
+			case 't':
 				if argsLen > i+1 {
 					targetLink = os.Args[i+1]
+					if len(targetLink) > 0 {
+						info := strings.Split(targetLink, "://")
+						if len(info) < 2 {
+							targetLink = "http://" + targetLink
+						}
+					}
 					i++
 				}
 			case 'L':
@@ -211,23 +237,7 @@ func parseArgs() {
 				if argsLen > i+1 {
 					value, err := strconv.Atoi(os.Args[i+1])
 					if err == nil && value > 0 {
-						benchmarkCount = value
-						i++
-					}
-				}
-			case 't':
-				if argsLen > i+1 {
-					value, err := strconv.Atoi(os.Args[i+1])
-					if err == nil && value > 0 {
 						benchmarkTimes = value
-						i++
-					}
-				}
-			case 'i':
-				if argsLen > i+1 {
-					value, err := strconv.Atoi(os.Args[i+1])
-					if err == nil && value > 0 {
-						intervalSecond = value
 						i++
 					}
 				}
@@ -281,28 +291,27 @@ func NewBenchmarkArgs(simple *BenchmarkItem, group *sync.WaitGroup, stats *Stats
 	}
 }
 
-func startBenchmark(simples []*BenchmarkItem, times int) {
+func startBenchmark(simples []*BenchmarkItem) {
 	group := &sync.WaitGroup{}
 	stats := NewStats()
+	pool := NewGoPool(connections)
 
 	for _, simple := range simples {
 		group.Add(1)
-		connPool.Do(benchmark, NewBenchmarkArgs(simple, group, stats))
+		pool.Do(benchmark, NewBenchmarkArgs(simple, group, stats))
 	}
 
 	group.Wait()
 
-	showBenchmarkResult(times, stats)
+	showBenchmarkResult(stats)
 }
 
 func usage() {
 	fmt.Println("Usage: gobenchmark <options>           \n",
 		"  Options:                                     \n",
-		"    -l <S>  Testing target URL                 \n",
+		"    -t <S>  Testing target URL                 \n",
 		"    -c <N>  Connections to keep open           \n",
 		"    -n <N>  How many request for testing       \n",
-		"    -t <N>  How many times for testing         \n",
-		"    -i <N>  Interval for each testing(seconds) \n",
 		"    -L <S>  Error log path                     \n",
 		"    -m <S>  Request method (etc: GET, POST)    \n",
 		"    -H <S>  Add header to request (JSON format)\n",
@@ -331,7 +340,7 @@ func main() {
 
 	var simples []*BenchmarkItem
 
-	for i := 0; i < benchmarkCount; i++ {
+	for i := 0; i < benchmarkTimes; i++ {
 		simples = append(simples, &BenchmarkItem{
 			URL:     targetLink,
 			Headers: reqHeaders,
@@ -341,12 +350,5 @@ func main() {
 		})
 	}
 
-	connPool = NewGoPool(connections)
-
-	for i := 0; i < benchmarkTimes; i++ {
-		startBenchmark(simples, i+1)
-		if i < benchmarkTimes-1 {
-			time.Sleep(time.Duration(intervalSecond) * time.Second)
-		}
-	}
+	startBenchmark(simples)
 }
